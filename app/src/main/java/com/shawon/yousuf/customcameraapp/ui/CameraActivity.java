@@ -2,10 +2,12 @@ package com.shawon.yousuf.customcameraapp.ui;
 
 import android.content.Intent;
 import android.hardware.Camera;
+import android.hardware.SensorManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.OrientationEventListener;
 import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.Toast;
@@ -34,6 +36,11 @@ public class CameraActivity extends AppCompatActivity {
     private Camera mCamera;
     private CameraPreview mPreview;
 
+    private int imageRotation = 0;
+    private int workingCameraId;
+
+    OrientationEventListener orientationEventListener;
+
     private String TAG = getClass().getSimpleName();
 
 
@@ -44,6 +51,33 @@ public class CameraActivity extends AppCompatActivity {
         setContentView(R.layout.activity_camera);
 
         ButterKnife.bind(this);
+
+        workingCameraId = Camera.CameraInfo.CAMERA_FACING_BACK;
+
+        orientationEventListener = new OrientationEventListener(this, SensorManager.SENSOR_DELAY_NORMAL ) {
+            @Override
+            public void onOrientationChanged(int orientation) {
+
+                Log.d(TAG, "onOrientationChanged" );
+                if (orientation == ORIENTATION_UNKNOWN) return;
+                Camera.CameraInfo info = new Camera.CameraInfo();
+                Camera.getCameraInfo(workingCameraId, info);
+                orientation = (orientation + 45) / 90 * 90;
+                int rotation = 0;
+                if (info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+                    rotation = (info.orientation - orientation + 360) % 360;
+                } else {  // back-facing camera
+                    rotation = (info.orientation + orientation) % 360;
+                }
+
+                imageRotation = rotation;
+                Log.d(TAG, "rotation: " + rotation);
+
+                //  mParameters.setRotation(rotation);
+
+
+            }
+        };
 
 
 
@@ -58,6 +92,10 @@ public class CameraActivity extends AppCompatActivity {
         Log.d(TAG, "onResume");
 
         openCamera();
+        if (orientationEventListener != null) {
+            orientationEventListener.enable();
+        }
+
     }
 
     @Override
@@ -73,6 +111,9 @@ public class CameraActivity extends AppCompatActivity {
         Log.d(TAG, "onPause");
 
         releaseCamera();
+        if (orientationEventListener != null) {
+            orientationEventListener.disable();
+        }
     }
 
     @Override
@@ -115,6 +156,11 @@ public class CameraActivity extends AppCompatActivity {
 
 
             Util.setCameraDisplayOrientation(this, Camera.CameraInfo.CAMERA_FACING_BACK, mCamera);
+
+            Camera.Parameters parameters = mCamera.getParameters();
+            parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_AUTO);
+
+            mCamera.setParameters(parameters);
 
             // Create our Preview view and set it as the content of our activity.
             mPreview = new CameraPreview(this, mCamera);
@@ -180,6 +226,10 @@ public class CameraActivity extends AppCompatActivity {
     @OnClick(R.id.button_capture)
     public void onClick() {
 
+
+        Camera.Parameters parameters = mCamera.getParameters();
+        parameters.setRotation(imageRotation);
+        mCamera.setParameters(parameters);
         // get an image from the camera
         mCamera.takePicture(null, null, mPicture);
 
