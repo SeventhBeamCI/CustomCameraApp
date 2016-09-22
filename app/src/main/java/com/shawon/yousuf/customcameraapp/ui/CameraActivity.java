@@ -93,7 +93,7 @@ public class CameraActivity extends AppCompatActivity {
 
         openCamera();
         if (orientationEventListener != null) {
-            orientationEventListener.enable();
+           // orientationEventListener.enable();
         }
 
     }
@@ -112,7 +112,7 @@ public class CameraActivity extends AppCompatActivity {
 
         releaseCamera();
         if (orientationEventListener != null) {
-            orientationEventListener.disable();
+         //   orientationEventListener.disable();
         }
     }
 
